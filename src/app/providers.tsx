@@ -1,12 +1,20 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SessionProvider } from 'next-auth/react';
 import { useState, type ReactNode } from 'react';
 
 import { ApiError } from '@/shared/api/ApiError';
 
 /**
- * Global providers. M1 adds NextAuth's SessionProvider around this one.
+ * Global providers.
+ *
+ * `SessionProvider` is what makes `useSession()` work in client components — without it, every call
+ * returns null and the UI reports everyone as signed out. Server-side `auth()` needs no provider; it
+ * reads the cookie directly.
+ *
+ * It wraps QueryClientProvider rather than the reverse because the axios request interceptor reads the
+ * session to attach the Bearer header, so any query firing must already be inside a session context.
  */
 export function Providers({ children }: { children: ReactNode }) {
   // Created inside useState, NOT as a module-level constant.
@@ -55,5 +63,9 @@ export function Providers({ children }: { children: ReactNode }) {
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <SessionProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </SessionProvider>
+  );
 }

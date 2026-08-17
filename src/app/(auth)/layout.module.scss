@@ -1,0 +1,26 @@
+.shell {
+  @include flex(column, center, center, $spacing-lg);
+  min-height: 100vh;
+  padding: $spacing-lg;
+}
+
+.card {
+  @include flex(column, flex-start, stretch, $spacing-lg);
+  width: 100%;
+  max-width: 26em;
+  padding: $spacing-xl;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+}
+
+.brand {
+  @include flex(column, flex-start, center, $spacing-2xs);
+  text-align: center;
+}
+
+.tagline {
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+}

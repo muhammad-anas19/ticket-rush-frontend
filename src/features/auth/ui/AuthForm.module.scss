@@ -1,0 +1,28 @@
+.form {
+  @include flex(column, flex-start, stretch, $spacing-md);
+  width: 100%;
+}
+
+.banner {
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-sm;
+  color: var(--color-danger);
+  background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
+  border-radius: $radius-md;
+}
+
+.footer {
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--color-primary-hover);
+  }
+}

@@ -17,8 +17,9 @@ on visual polish is an hour not spent on the five technologies this project exis
 | Module | Understanding check | Implementation |
 |---|---|---|
 | M0 | n/a — all covered ground | ✅ Complete & verified (see `backend/docs/walkthroughs/m0-foundation-code-walkthrough.md`) |
-| M1 | ◄ next — **NextAuth, never used before** | not started |
-| M2–M8 | not started | not started |
+| M1 | ✅ Graded (`backend/docs/qa/phase-1-auth-understanding-check.md` Q6–Q10) | ✅ Complete & verified — [walkthroughs/m1-auth-code-walkthrough.md](walkthroughs/m1-auth-code-walkthrough.md) · [concepts/01-nextauth.md](concepts/01-nextauth.md) |
+| M2 | ◄ next | not started |
+| M3–M8 | not started | not started |
 
 Frontend understanding checks are asked when the backend half of that module is complete, so the API
 being consumed is real and concrete rather than hypothetical.

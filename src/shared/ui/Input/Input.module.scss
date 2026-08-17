@@ -1,0 +1,59 @@
+.field {
+  @include flex(column, flex-start, stretch, $spacing-2xs);
+}
+
+.label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--color-text);
+}
+
+.required {
+  color: var(--color-danger);
+  margin-left: $spacing-3xs;
+}
+
+.input {
+  @include focus-ring;
+
+  width: 100%;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-sm;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  transition: border-color $transition-fast;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-surface-raised);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.hasError {
+  border-color: var(--color-danger);
+
+  // Colour must never be the only signal — roughly one in twelve men cannot reliably distinguish
+  // a red border from a neutral one. The error TEXT below carries the meaning; the border only
+  // reinforces it.
+  @include focus-ring(var(--color-danger));
+}
+
+.error {
+  font-size: $font-size-xs;
+  color: var(--color-danger);
+}
+
+.hint {
+  font-size: $font-size-xs;
+  color: var(--color-text-muted);
+}

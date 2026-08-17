@@ -1,8 +1,14 @@
-// Public surface of the shared UI layer. Consumers import from '@/shared/ui', not from
-// individual files — so a component can be restructured internally without touching call
-// sites, and the barrel makes "what atoms exist" answerable by reading one file.
+// Public surface of the shared UI layer. Consumers import from '@/shared/ui', not from individual
+// files — so a component can be restructured internally without touching call sites, and the barrel
+// makes "what atoms exist" answerable by reading one file.
 export { Button } from './Button/Button';
 export type { ButtonProps, ButtonVariant, ButtonSize } from './Button/Button';
+
+export { Input } from './Input/Input';
+export type { InputProps } from './Input/Input';
+
+export { Select } from './Select/Select';
+export type { SelectProps, SelectOption } from './Select/Select';
 
 export { Skeleton } from './Skeleton/Skeleton';
 export type { SkeletonProps, SkeletonVariant } from './Skeleton/Skeleton';
