@@ -1,0 +1,79 @@
+@use 'variables' as *;
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+@mixin flex($direction: row, $justify: flex-start, $align: center, $gap: 0) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  gap: $gap;
+}
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == sm {
+    @media (min-width: $breakpoint-sm) { @content; }
+  } @else if $breakpoint == md {
+    @media (min-width: $breakpoint-md) { @content; }
+  } @else if $breakpoint == lg {
+    @media (min-width: $breakpoint-lg) { @content; }
+  } @else {
+    @error 'Unknown breakpoint: #{$breakpoint}. Use sm, md or lg.';
+  }
+}
+
+// ── Accessibility ─────────────────────────────────────────────────────────────
+
+// Every interactive control must show a visible focus ring — it's the first item on the
+// a11y checklist. `:focus-visible` rather than `:focus` so the ring appears for keyboard
+// users but not on mouse click, which is what made people remove focus styles entirely
+// back when only `:focus` existed.
+@mixin focus-ring($color: $color-primary-500) {
+  &:focus-visible {
+    outline: 2px solid $color;
+    outline-offset: 2px;
+  }
+}
+
+// Hides content visually while keeping it available to screen readers. `display: none`
+// would remove it from the accessibility tree too, which defeats the purpose.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ── Feedback ──────────────────────────────────────────────────────────────────
+@mixin skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    $color-neutral-800 25%,
+    $color-neutral-700 50%,
+    $color-neutral-800 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+
+  // Respect the OS-level "reduce motion" setting. A shimmer is decorative; for someone with
+  // vestibular sensitivity it is not harmless.
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background: $color-neutral-800;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,83 @@
+// Design tokens.
+//
+// Defined as SCSS variables AND emitted as CSS custom properties in themes/. SCSS variables
+// are resolved at compile time (usable in maths and mixins); custom properties are resolved
+// at runtime (swappable for theming without a rebuild). Both exist because they solve
+// different problems — reaching for only one always hurts eventually.
+
+// ── Colour ────────────────────────────────────────────────────────────────────
+// HSL rather than hex: lightness is a separate, adjustable channel, so a hover state is
+// "the same hue, less light" instead of an unrelated hex value nobody can reason about.
+
+$color-primary-50:  hsl(225, 100%, 96%);
+$color-primary-100: hsl(225, 95%, 90%);
+$color-primary-500: hsl(225, 73%, 57%);   // brand accent
+$color-primary-600: hsl(225, 70%, 50%);
+$color-primary-700: hsl(225, 68%, 42%);
+
+$color-neutral-900: hsl(222, 47%, 11%);   // background
+$color-neutral-800: hsl(217, 33%, 17%);   // card / surface
+$color-neutral-700: hsl(215, 25%, 27%);   // borders / dividers
+$color-neutral-600: hsl(215, 20%, 40%);
+$color-neutral-400: hsl(215, 16%, 57%);   // muted body text
+$color-neutral-200: hsl(214, 32%, 85%);
+$color-neutral-100: hsl(210, 40%, 98%);   // headings / high contrast
+
+$color-success: hsl(142, 71%, 45%);
+$color-warning: hsl(38, 92%, 50%);
+$color-danger:  hsl(359, 68%, 60%);
+$color-info:    hsl(199, 89%, 48%);
+
+// ── Typography ────────────────────────────────────────────────────────────────
+// Every value is `em`. The root font-size is declared exactly once, as 16px, in
+// base/_typography.scss — see the strict sizing rule in frontend/CLAUDE.md.
+
+$font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+$font-family-mono: 'SFMono-Regular', Menlo, Consolas, monospace;
+
+$font-size-xs:  0.75em;    // 12px — badges, fine print
+$font-size-sm:  0.875em;   // 14px — body, table cells, inputs
+$font-size-md:  1em;       // 16px — default, button labels
+$font-size-lg:  1.125em;   // 18px — card titles
+$font-size-xl:  1.5em;     // 24px — primary metrics, modal titles
+$font-size-2xl: 2em;       // 32px — page titles
+
+$font-weight-regular:  400;
+$font-weight-medium:   500;
+$font-weight-semibold: 600;
+$font-weight-bold:     700;
+
+$line-height-tight:  1.25;
+$line-height-normal: 1.5;
+
+// ── Spacing ───────────────────────────────────────────────────────────────────
+$spacing-3xs: 0.125em;   // 2px
+$spacing-2xs: 0.25em;    // 4px
+$spacing-xs:  0.5em;     // 8px
+$spacing-sm:  0.75em;    // 12px
+$spacing-md:  1em;       // 16px
+$spacing-lg:  1.5em;     // 24px
+$spacing-xl:  2em;       // 32px
+$spacing-2xl: 3em;       // 48px
+
+// ── Radius ────────────────────────────────────────────────────────────────────
+$radius-sm:   0.25em;
+$radius-md:   0.375em;
+$radius-lg:   0.5em;
+$radius-full: 9999em;
+
+// ── Elevation ─────────────────────────────────────────────────────────────────
+// px is permitted here: shadow blur and spread are one of the two documented exceptions
+// to the em rule, alongside hairline borders. A shadow that scales with font-size looks
+// wrong, not proportional.
+$shadow-sm: 0 1px 2px hsl(222 47% 4% / 0.3);
+$shadow-md: 0 4px 12px hsl(222 47% 4% / 0.35);
+
+// ── Motion ────────────────────────────────────────────────────────────────────
+$transition-fast: 120ms ease;
+$transition-base: 200ms ease;
+
+// ── Breakpoints ───────────────────────────────────────────────────────────────
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;

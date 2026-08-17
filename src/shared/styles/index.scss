@@ -1,0 +1,10 @@
+// Global entry point, imported once in app/layout.tsx.
+//
+// Order matters: theme custom properties must exist before base styles reference them, and
+// the reset must land before typography so its `margin: 0` doesn't override heading styles.
+//
+// `abstracts` is deliberately NOT imported here — it emits no CSS, and next.config.mjs
+// already injects it into every .module.scss.
+@use 'themes/dark';
+@use 'base/reset';
+@use 'base/typography';

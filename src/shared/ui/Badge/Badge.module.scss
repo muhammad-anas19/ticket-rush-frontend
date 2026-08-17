@@ -1,0 +1,20 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2xs;
+  padding: $spacing-3xs $spacing-xs;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  line-height: $line-height-tight;
+  white-space: nowrap;
+}
+
+// Colour alone must never be the only signal — a red and a green pill are identical to
+// roughly one in twelve men. The text inside every badge carries the meaning; colour only
+// reinforces it. That's the WCAG "use of colour" criterion, and it is the one people miss.
+.neutral { background-color: var(--color-surface-raised); color: var(--color-text-muted); }
+.success { background-color: color-mix(in srgb, var(--color-success) 20%, transparent); color: var(--color-success); }
+.warning { background-color: color-mix(in srgb, var(--color-warning) 20%, transparent); color: var(--color-warning); }
+.danger  { background-color: color-mix(in srgb, var(--color-danger) 20%, transparent);  color: var(--color-danger); }
+.info    { background-color: color-mix(in srgb, var(--color-info) 20%, transparent);    color: var(--color-info); }

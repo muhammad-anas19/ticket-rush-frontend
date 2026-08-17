@@ -1,0 +1,7 @@
+// Forwarded as one entry point so `@use '.../abstracts' as *` pulls in both.
+// This file is what next.config.mjs injects into every .module.scss.
+//
+// It must never emit CSS — only variables, mixins and functions. Anything that produced a
+// rule here would be duplicated into every single component module.
+@forward 'variables';
+@forward 'mixins';

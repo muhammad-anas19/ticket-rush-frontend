@@ -1,0 +1,31 @@
+@use '../abstracts' as *;
+
+// Tokens re-exposed as CSS custom properties.
+//
+// SCSS variables are compile-time — they cannot change after build, which is why a theme
+// switch cannot be built from them alone. Custom properties are resolved by the browser at
+// runtime, so swapping a `data-theme` attribute reskins the app with no rebuild and no
+// JavaScript touching individual elements.
+//
+// Components use `var(--color-surface)` for anything themeable, and the raw SCSS variables
+// only where the value must be known at compile time (inside a mixin's maths, for instance).
+
+:root {
+  --color-bg: #{$color-neutral-900};
+  --color-surface: #{$color-neutral-800};
+  --color-surface-raised: #{$color-neutral-700};
+  --color-border: #{$color-neutral-700};
+
+  --color-text: #{$color-neutral-100};
+  --color-text-muted: #{$color-neutral-400};
+  --color-text-inverse: #{$color-neutral-900};
+
+  --color-primary: #{$color-primary-500};
+  --color-primary-hover: #{$color-primary-600};
+  --color-primary-active: #{$color-primary-700};
+
+  --color-success: #{$color-success};
+  --color-warning: #{$color-warning};
+  --color-danger: #{$color-danger};
+  --color-info: #{$color-info};
+}

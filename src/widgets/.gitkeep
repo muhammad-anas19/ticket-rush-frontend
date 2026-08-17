@@ -1,0 +1,5 @@
+# FSD layer: widgets
+
+May import from: see frontend/CLAUDE.md.
+Lower layers never import from higher ones; same-layer cross-imports are forbidden.
+Populated from M2 onward.

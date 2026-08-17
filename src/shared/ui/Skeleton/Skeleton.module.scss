@@ -1,0 +1,17 @@
+.skeleton {
+  @include skeleton-pulse;
+  border-radius: $radius-sm;
+}
+
+.text {
+  height: 1em;
+  border-radius: $radius-sm;
+
+  // A paragraph's last line is short in real text, so a stack of identical bars reads as
+  // "loading bars" rather than "loading text". Small detail, large difference.
+  &:last-child { width: 70%; }
+}
+
+.block { border-radius: $radius-md; }
+
+.circle { border-radius: $radius-full; }

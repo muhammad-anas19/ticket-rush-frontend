@@ -1,0 +1,62 @@
+.page {
+  @include flex(column, flex-start, stretch, $spacing-lg);
+  max-width: 42em;
+  margin: 0 auto;
+  padding: $spacing-2xl $spacing-lg;
+}
+
+.header {
+  @include flex(column, flex-start, flex-start, $spacing-2xs);
+}
+
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: $font-size-sm;
+}
+
+.card {
+  @include flex(column, flex-start, stretch, $spacing-md);
+  padding: $spacing-lg;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+}
+
+.cardHeader {
+  @include flex(row, space-between, center, $spacing-sm);
+}
+
+.checks {
+  @include flex(column, flex-start, stretch, $spacing-xs);
+}
+
+.check {
+  @include flex(row, space-between, center, $spacing-sm);
+  padding: $spacing-xs $spacing-sm;
+  background-color: var(--color-bg);
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+}
+
+.checkName {
+  font-family: $font-family-mono;
+  color: var(--color-text-muted);
+}
+
+.empty,
+.error {
+  @include flex(column, center, center, $spacing-sm);
+  padding: $spacing-xl;
+  text-align: center;
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: $font-size-sm;
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: $font-size-xs;
+}

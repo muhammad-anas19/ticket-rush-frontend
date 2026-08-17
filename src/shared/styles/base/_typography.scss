@@ -1,0 +1,32 @@
+@use '../abstracts' as *;
+
+// THE ONE PLACE a px font-size is declared.
+//
+// Every other size in the codebase is `em`, relative to this. That is what makes the whole
+// scale adjustable from a single value, and it is why component modules are forbidden from
+// using px for font-size, padding, margin, width or height.
+//
+// Note this is on `html`, not `body`: `rem` resolves against the html element, so setting it
+// here keeps rem and em consistent if a rem is ever needed.
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: $font-family-base;
+  font-size: $font-size-md;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-normal;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold;     line-height: $line-height-tight; }
+h2 { font-size: $font-size-xl;  font-weight: $font-weight-semibold; line-height: $line-height-tight; }
+h3 { font-size: $font-size-lg;  font-weight: $font-weight-semibold; line-height: $line-height-tight; }
+
+code,
+pre {
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+}
