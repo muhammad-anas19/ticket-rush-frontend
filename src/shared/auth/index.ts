@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { CredentialsSignin } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import type { JWT } from 'next-auth/jwt';
 
@@ -6,6 +6,32 @@ import { authConfig } from './config';
 import type { BackendAuthResponse } from './types';
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+/**
+ * Carries the backend's own error message out of `authorize()` and back to the login form.
+ *
+ * This exists because of a real limitation: `authorize()` returning `null` produces a generic
+ * `CredentialsSignin` error and the backend's message is DISCARDED. NextAuth deliberately does not
+ * forward arbitrary text from a credentials check to the client.
+ *
+ * The one channel it does provide is `CredentialsSignin.code`, which is placed in the redirect URL's
+ * `code` query parameter and — with `redirect: false` — comes back as `result.code` from `signIn()`.
+ *
+ * Auth.js warns that `code` ends up in a URL and so must not hint at anything sensitive. That
+ * warning is satisfied here for a specific reason rather than by luck: the backend already returns a
+ * deliberately generic "Invalid email or password" for both a wrong password and an unregistered
+ * address, and it burns an equivalent bcrypt comparison on the unknown-email path so response timing
+ * cannot distinguish them either. We are forwarding a message that has already been sanitised by the
+ * party that owns that decision.
+ *
+ * Which is the whole point of doing it this way: the frontend does not get a vote on what is safe to
+ * say. It relays.
+ */
+class BackendCredentialsError extends CredentialsSignin {
+  constructor(public code: string) {
+    super(code);
+  }
+}
 
 /**
  * Exchanges an expired access token for a fresh pair.
@@ -112,12 +138,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           cache: 'no-store',
         });
 
-        // `null` fails the sign-in cleanly as a CredentialsSignin error. THROWING here is the
-        // common mistake — it surfaces differently and can leak the message through the error page,
-        // and our backend deliberately returns a generic "Invalid email or password" precisely so
-        // nothing distinguishes a wrong password from an unregistered address.
         if (!response.ok) {
-          return null;
+          // Throwing a CredentialsSignin subclass rather than returning `null`.
+          //
+          // `null` is the documented way to fail, and it is correct when you have nothing to say —
+          // but it throws the backend's message away. Since the requirement is that the user sees
+          // the API's exact wording, the message is attached as `code` and read back from
+          // `signIn()`'s result.
+          //
+          // Note this is NOT the "throwing leaks information" mistake: the leak risk is throwing an
+          // arbitrary Error, whose message Auth.js may surface on its own error page. A
+          // CredentialsSignin subclass is the supported path, and `code` is the field designed to
+          // cross that boundary.
+          const body = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new BackendCredentialsError(body?.message ?? 'Sign-in failed');
         }
 
         const envelope = (await response.json()) as { data: BackendAuthResponse };
@@ -136,6 +170,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+
+  /**
+   * ─── Server-side revocation on sign-out ──────────────────────────────────────
+   *
+   * This exists because of a real bug found by checking the database after signing out.
+   *
+   * `signOut()` clears NextAuth's session cookie and nothing more. It knows nothing about our
+   * backend, so the refresh-token family stayed **live in Postgres for its full 7 days**. Verified:
+   * after sign-out the session endpoint returned `null` while `SELECT count(*) ... WHERE revoked_at
+   * IS NULL` still returned 2.
+   *
+   * So "logging out" only logged out of this browser. Anyone else holding that refresh token could
+   * still mint access tokens for a week — which is exactly the failure mode logout is supposed to
+   * prevent, and precisely the P1 bug this project's notes warn about: logout appeared to work and
+   * never revoked anything server-side.
+   *
+   * `events.signOut` receives the decoded token for JWT sessions, which is the only place the
+   * refresh token is still reachable at sign-out time.
+   */
+  events: {
+    async signOut(message) {
+      // Union type: `{ token }` for JWT sessions, `{ session }` for database sessions. We are always
+      // the former (the Credentials provider forces it), but narrow rather than assume.
+      if (!('token' in message) || !message.token?.refreshToken) {
+        return;
+      }
+
+      try {
+        await fetch(`${API}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: message.token.refreshToken }),
+          cache: 'no-store',
+        });
+      } catch {
+        /**
+         * Deliberately swallowed. Throwing here would break the sign-out flow and leave the user
+         * with a session cookie they asked to be rid of — trading a definite local failure for a
+         * possible remote one.
+         *
+         * The backend's logout is idempotent (an unknown token still returns 200), so a retry is
+         * safe, and the tokens expire on their own regardless. The residual risk if this call is
+         * lost is the original bug for up to 7 days, which is why a periodic sweep of expired and
+         * orphaned tokens is on the M8 list.
+         */
+      }
+    },
+  },
 
   callbacks: {
     ...authConfig.callbacks,

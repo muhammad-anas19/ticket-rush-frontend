@@ -3,8 +3,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 import { fetchMe } from '@/entities/user/api/user.api';
+import { getErrorMessage } from '@/shared/api/errorMessage';
 import { Badge, Button, Skeleton } from '@/shared/ui';
 import styles from './SessionPanel.module.scss';
 
@@ -31,6 +34,34 @@ export function SessionPanel() {
     // returns a 401 that looks like a bug rather than "not signed in yet".
     enabled: status === 'authenticated',
   });
+
+  /**
+   * Surface backend failures as toasts, verbatim.
+   *
+   * In an effect rather than during render, because `toast.error()` mutates state in a store outside
+   * React — calling it in a render body fires on every re-render and produces a stack of duplicates.
+   * Keyed by the message so a re-render with the same error replaces rather than stacks.
+   *
+   * Note the inline error state below is KEPT alongside this. They serve different readers: the toast
+   * is transient and announced to a screen reader; the inline state is the persistent record of a
+   * region that failed to load, which the three-mandatory-UI-states rule requires. Both show the same
+   * unmodified message, so they cannot disagree.
+   */
+  useEffect(() => {
+    if (isError) {
+      toast.error(getErrorMessage(error), { id: 'auth-me-error' });
+    }
+  }, [isError, error]);
+
+  useEffect(() => {
+    if (session?.error === 'RefreshTokenError') {
+      // The `jwt` callback's own flag, not a backend message — the refresh failed server-side and
+      // there is no API response to relay. Written once, here.
+      toast.error('Your session could not be refreshed. Please sign in again.', {
+        id: 'refresh-error',
+      });
+    }
+  }, [session?.error]);
 
   // `status === 'loading'` matters more than it looks. On a fresh page load the client genuinely does
   // not know yet whether a session exists — gating on `authenticated` alone flashes a false
@@ -84,6 +115,7 @@ export function SessionPanel() {
         </div>
       )}
 
+
       <div className={styles.rows}>
         <div className={styles.row}>
           <span className={styles.key}>session.user.email</span>
@@ -110,8 +142,9 @@ export function SessionPanel() {
       <h3>GET /api/auth/me</h3>
       {isPending && <Skeleton variant="block" height="2.5em" count={2} />}
       {isError && (
+        // The backend's exact message. Never rewritten — see shared/api/errorMessage.ts.
         <div className={styles.banner} role="alert">
-          {error instanceof Error ? error.message : 'Request failed'}
+          {getErrorMessage(error)}
         </div>
       )}
       {me && (

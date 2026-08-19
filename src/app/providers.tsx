@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { useState, type ReactNode } from 'react';
+import { Toaster } from 'react-hot-toast';
 
 import { ApiError } from '@/shared/api/ApiError';
 
@@ -65,7 +66,43 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        {children}
+        {/*
+          One Toaster for the whole app. Every failed request surfaces here with the backend's exact
+          message — see shared/api/errorMessage.ts for why the frontend never rewrites one.
+
+          Styled from the design tokens rather than react-hot-toast's defaults, which are built for a
+          light theme and would sit oddly on a dark surface.
+
+          `ariaProps` matter: role="alert" with aria-live="assertive" means a screen reader announces
+          the failure immediately. A toast that only appears visually is invisible to the users most
+          likely to need the message.
+        */}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 5000,
+            style: {
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+              border: '1px solid var(--color-border)',
+              fontSize: '0.875em',
+              maxWidth: '32em',
+            },
+            error: {
+              // Longer than a success toast. An error is something the user has to read and act on,
+              // and 4 seconds is not enough to read a validation message and understand it.
+              duration: 7000,
+              iconTheme: { primary: 'var(--color-danger)', secondary: 'var(--color-surface)' },
+              ariaProps: { role: 'alert', 'aria-live': 'assertive' },
+            },
+            success: {
+              iconTheme: { primary: 'var(--color-success)', secondary: 'var(--color-surface)' },
+            },
+          }}
+        />
+      </QueryClientProvider>
     </SessionProvider>
   );
 }

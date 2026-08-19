@@ -86,12 +86,17 @@ Two smaller details in that function that matter:
   still reach the API with a token that expired in flight — likelier than it sounds once clock drift
   between hosts is involved.
 
-### `authorize()` returns `null`, never throws
+### `authorize()` throws a `CredentialsSignin` subclass, not a bare `Error` — and not `null`
 
-`null` fails the sign-in cleanly. Throwing surfaces differently and can leak the message through the
-error page — and our backend deliberately returns a generic "Invalid email or password" so that
-nothing distinguishes a wrong password from an unregistered address. Leaking a more helpful message
-here would undo the enumeration defence the API pays a full bcrypt comparison for.
+`null` is the documented way to fail, and it is right when you have nothing to say. But it **discards
+the backend's message**, and this project's rule is that the user sees the API's exact wording. So
+`authorize()` throws a small `BackendCredentialsError extends CredentialsSignin` whose `code` carries
+the message — see "Errors are relayed, never rewritten" below.
+
+The distinction that matters: the "throwing leaks information" warning is about throwing an **arbitrary
+`Error`**, whose message Auth.js may surface on its own error page. A `CredentialsSignin` subclass is
+the supported path, and `code` is the field designed to cross that boundary. It is still only safe
+because the backend sanitised the message first.
 
 ### Login goes through `signIn()`; registration does not
 
@@ -118,6 +123,53 @@ reads as "the login didn't work" when it did.
 React Hook Form's `register()` attaches a ref to the underlying native element to read values without
 re-rendering per keystroke. A component that swallows the ref **fails silently**: the field never
 appears in form values, and validation "passes" because there is nothing to validate.
+
+---
+
+### Errors are relayed, never rewritten
+
+`shared/api/errorMessage.ts` reads the backend's message; nothing in `features/` or `widgets/`
+composes its own. Failures surface as **react-hot-toast** toasts showing the API's exact string.
+
+The reason is not brevity — it is that **the backend already owns the decision**. `/auth/login`
+returns a deliberately generic "Invalid email or password" for both a wrong password and an
+unregistered address, and pays for an equivalent bcrypt comparison on the unknown-email path so the
+response *time* cannot distinguish them either. When the form substituted its own wording it was
+duplicating a security decision made elsewhere — and the two copies could drift, so that tightening
+the API's message silently changed nothing in the UI.
+
+Corollary worth stating: **a badly-worded error is now a backend bug**, fixed in the DTO or the
+exception, not patched over in a component.
+
+The earlier `RegisterForm` branched on status codes — rewriting 409 into its own sentence, attaching
+it to the email field, and falling through to "Something went wrong" for anything unanticipated. It
+looked more polished and was worse on all three counts.
+
+**One thing NextAuth makes genuinely hard here.** `authorize()` returning `null` produces a bare
+`CredentialsSignin` error and **discards the backend's message** — NextAuth does not forward arbitrary
+text from a credentials check. The single channel it offers is `CredentialsSignin.code`, which lands in
+the redirect URL and comes back as `result.code` from `signIn()`. So `authorize()` throws a small
+`BackendCredentialsError` carrying the message.
+
+Auth.js warns that `code` reaches a URL and must not hint at anything sensitive. That is satisfied
+*because* the backend already sanitised it — verified on the wire, and identical for both failure
+causes:
+
+```
+wrong password → location: /login?error=CredentialsSignin&code=Invalid+email+or+password
+unknown email  → location: /login?error=CredentialsSignin&code=Invalid+email+or+password
+```
+
+Two notes on the toasts themselves. They fire from a `useEffect`, not a render body — `toast.error()`
+writes to a store outside React, so calling it during render stacks a duplicate on every re-render;
+each is given a stable `id` so a repeat replaces rather than piles up. And error toasts carry
+`role="alert"` with `aria-live="assertive"`, because a toast that only appears visually is invisible to
+the users most likely to need it.
+
+The inline error state in `SessionPanel` is kept **alongside** the toast: the toast is transient and
+announced, the inline state is the persistent record of a region that failed to load, which the
+three-mandatory-UI-states rule requires. Both render the same unmodified string, so they cannot
+disagree.
 
 ---
 
@@ -193,6 +245,11 @@ a safe place for the refresh token.
 | `/login` signed in | ✅ 302 → `/` *(was 200 before the fix)* |
 | `/register` signed in | ✅ 302 → `/` |
 | `/login` signed out | ✅ 200 |
+| **Backend message crosses NextAuth** | ✅ `code=Invalid+email+or+password` |
+| **Identical for wrong-password vs unknown-email** | ✅ no enumeration via the message |
+| 409 relayed verbatim | ✅ "An account with that email already exists" |
+| 400 field errors relayed verbatim | ✅ all three joined, none summarised |
+| No hardcoded messages in `features/` or `widgets/` | ✅ grep clean |
 
 The `/auth/me` result is the one that matters: it proves the token was **accepted** by NestJS, not
 merely decoded, because that endpoint reads the database rather than echoing the token's claims.

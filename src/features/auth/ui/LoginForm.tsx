@@ -4,8 +4,8 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 
 import { Button, Input } from '@/shared/ui';
 import { loginSchema, type LoginValues } from '../model/schemas';
@@ -14,7 +14,6 @@ import styles from './AuthForm.module.scss';
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
@@ -29,8 +28,6 @@ export function LoginForm() {
   });
 
   const onSubmit = async (values: LoginValues) => {
-    setFormError(null);
-
     /**
      * `signIn('credentials', ...)` — NOT a direct POST to the backend.
      *
@@ -40,7 +37,7 @@ export function LoginForm() {
      * user would hold working credentials and have no session.
      *
      * `redirect: false` so we handle the outcome here rather than letting NextAuth navigate. A
-     * redirect on failure would lose the error, and we want it rendered against this form.
+     * redirect on failure would lose the message entirely.
      */
     const result = await signIn('credentials', {
       email: values.email,
@@ -49,11 +46,20 @@ export function LoginForm() {
     });
 
     if (result?.error) {
-      // Deliberately generic, mirroring the backend. It does not distinguish an unregistered address
-      // from a wrong password — and neither does the backend's response time, which pays for a bcrypt
-      // comparison either way. Being more helpful here would hand an attacker a user-enumeration
-      // oracle the API went out of its way to close.
-      setFormError('Invalid email or password');
+      /**
+       * `result.code` is the backend's own message, relayed verbatim.
+       *
+       * `authorize()` throws a `CredentialsSignin` subclass carrying it (see shared/auth/index.ts),
+       * because `code` is the only field NextAuth forwards from a credentials check to the client.
+       * Without that, `result.error` is the useless generic string "CredentialsSignin".
+       *
+       * Note what this component deliberately does NOT do: substitute its own wording. The API
+       * returns "Invalid email or password" for both a wrong password and an unregistered address —
+       * generic on purpose, and backed by matched response timing so the difference cannot be
+       * measured either. Rewriting it here would duplicate a security decision the backend owns, and
+       * the two copies would eventually disagree.
+       */
+      toast.error(result.code ?? result.error);
       return;
     }
 
@@ -69,13 +75,6 @@ export function LoginForm() {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit(onSubmit)} noValidate>
-      {/* role="alert" so a screen reader announces the failure rather than it being visual-only. */}
-      {formError && (
-        <div className={styles.banner} role="alert">
-          {formError}
-        </div>
-      )}
-
       <Input
         label="Email"
         type="email"

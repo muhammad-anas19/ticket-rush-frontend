@@ -4,24 +4,22 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 
 import { registerUser } from '@/entities/user/api/user.api';
 import { ROLE_OPTIONS } from '@/entities/user/model/user.types';
-import { ApiError } from '@/shared/api/ApiError';
+import { getErrorMessage } from '@/shared/api/errorMessage';
 import { Button, Input, Select } from '@/shared/ui';
 import { registerSchema, type RegisterValues } from '../model/schemas';
 import styles from './AuthForm.module.scss';
 
 export function RegisterForm() {
   const router = useRouter();
-  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm<RegisterValues>({
     resolver: yupResolver(registerSchema),
@@ -30,8 +28,6 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (values: RegisterValues) => {
-    setFormError(null);
-
     try {
       // Two steps, deliberately. The backend returns a token pair here, but NextAuth knows nothing
       // about it — only `authorize()` can establish a session. So we register, then sign in.
@@ -52,9 +48,9 @@ export function RegisterForm() {
       });
 
       if (result?.error) {
-        // The account exists but the session did not establish. Say so precisely rather than
-        // "registration failed" — retrying registration would now hit a 409 and confuse them further.
-        setFormError('Account created, but sign-in failed. Please try signing in.');
+        // The account was created but the session did not establish. `result.code` carries the
+        // backend's own message from the login attempt, relayed as-is.
+        toast.error(result.code ?? result.error);
         return;
       }
 
@@ -62,41 +58,25 @@ export function RegisterForm() {
       // Invalidate the router cache so server components re-render with the new session.
       router.refresh();
     } catch (error) {
-      if (error instanceof ApiError) {
-        // 409 is attributable to a specific field, so attach it there rather than to the form.
-        // A banner saying "email already registered" makes the user hunt for which field is wrong.
-        //
-        // Note registration DOES leak that an address is taken, and unavoidably so — the user has to
-        // be told why it failed. Login is where enumeration must be prevented, and it is.
-        if (error.status === 409) {
-          setError('email', { message: 'An account with that email already exists' });
-          return;
-        }
-
-        // Field-level messages from the backend's ValidationPipe. Shown as a banner because mapping
-        // them back to fields would mean parsing English, and any mismatch between the Yup schema and
-        // the backend DTO is a bug to fix rather than paper over at runtime.
-        if (error.fieldErrors?.length) {
-          setFormError(error.fieldErrors.join('. '));
-          return;
-        }
-
-        setFormError(error.message);
-        return;
-      }
-
-      setFormError('Something went wrong. Please try again.');
+      /**
+       * Every failure surfaces the backend's exact message. No status-code branching, no substituted
+       * wording, no field-mapping guesswork.
+       *
+       * The earlier version rewrote a 409 into its own sentence and attached it to the email field.
+       * That looked more polished and was worse: the message the user saw no longer matched the API's,
+       * so tightening the backend's wording silently had no effect on the UI, and any status the
+       * branch did not anticipate fell through to a generic "Something went wrong".
+       *
+       * The backend already says what it means — "An account with that email already exists", or the
+       * ValidationPipe's per-field messages. Relaying is both simpler and more truthful. If a message
+       * reads badly, that is a backend bug to fix in the DTO or the exception.
+       */
+      toast.error(getErrorMessage(error));
     }
   };
 
   return (
     <form className={styles.form} onSubmit={handleSubmit(onSubmit)} noValidate>
-      {formError && (
-        <div className={styles.banner} role="alert">
-          {formError}
-        </div>
-      )}
-
       <Input
         label="Email"
         type="email"
