@@ -1,0 +1,75 @@
+.wrapper {
+  @include flex(column, flex-start, stretch, $spacing-md);
+}
+
+// The table scrolls inside its own box so the PAGE never scrolls sideways on a narrow screen.
+.tableScroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th,
+  td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  thead {
+    background-color: var(--color-surface-raised);
+
+    th {
+      font-weight: $font-weight-semibold;
+      color: var(--color-text-muted);
+      font-size: $font-size-xs;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  tbody tr {
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+
+    &:hover { background-color: var(--color-surface-raised); }
+  }
+}
+
+.stale {
+  opacity: 0.55;
+  transition: opacity $transition-base;
+}
+
+.link {
+  font-weight: $font-weight-medium;
+
+  &:hover { color: var(--color-primary); }
+}
+
+.sub {
+  font-size: $font-size-xs;
+  color: var(--color-text-muted);
+}
+
+.pagination {
+  @include flex(row, center, center, $spacing-md);
+  flex-wrap: wrap;
+}
+
+.empty {
+  @include flex(column, center, center, $spacing-sm);
+  padding: $spacing-2xl $spacing-lg;
+  text-align: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+}
+
+.muted { font-size: $font-size-sm; color: var(--color-text-muted); }
+.errorText { font-size: $font-size-sm; color: var(--color-danger); }

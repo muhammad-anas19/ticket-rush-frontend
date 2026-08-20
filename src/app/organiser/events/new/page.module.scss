@@ -1,0 +1,23 @@
+.page {
+  @include flex(column, flex-start, stretch, $spacing-lg);
+  max-width: 40em;
+  margin: 0 auto;
+  padding: $spacing-2xl $spacing-lg;
+}
+
+.header {
+  @include flex(column, flex-start, flex-start, $spacing-2xs);
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+  line-height: $line-height-normal;
+}
+
+.card {
+  padding: $spacing-xl;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+}

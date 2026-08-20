@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react';
 import { Toaster } from 'react-hot-toast';
 
 import { ApiError } from '@/shared/api/ApiError';
+import { AuthTokenSync } from './AuthTokenSync';
 
 /**
  * Global providers.
@@ -65,8 +66,31 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <SessionProvider>
+    /**
+     * ─── Session refetch behaviour, chosen deliberately ────────────────────────
+     *
+     * `refetchOnWindowFocus` defaults to TRUE in NextAuth, which is why switching tabs or windows fired a
+     * `/api/auth/session` call. Turned OFF here, for two reasons:
+     *
+     *   1. Its main historical job — noticing a sign-out in another tab — is already covered. NextAuth
+     *      posts to a **BroadcastChannel** on sign-in and sign-out, so other tabs learn about it without
+     *      polling on focus.
+     *   2. Its remaining job is keeping the access token fresh, and `refetchInterval` does that on a
+     *      predictable schedule instead of "whenever the user alt-tabs".
+     *
+     * `refetchInterval` is 10 minutes against a 15-minute access token, so the token is renewed with
+     * ~5 minutes of headroom. Reading the session runs our `jwt` callback, which refreshes the access
+     * token when it is close to expiry — so this interval IS the refresh mechanism, not just a poll.
+     *
+     * The one case this trades away: a laptop that SLEEPS. `setInterval` does not fire while suspended
+     * and does not catch up, so a machine waking after 40 minutes has a stale token until the next tick.
+     * The interceptor's `getSession()` fallback and the API's 401 both cover it; if that proves annoying
+     * in practice, re-enabling focus refetch is a one-word change and this comment is the reason why.
+     */
+    <SessionProvider refetchOnWindowFocus={false} refetchInterval={10 * 60}>
       <QueryClientProvider client={queryClient}>
+        {/* Keeps the axios client's token in step with the session. Renders nothing. */}
+        <AuthTokenSync />
         {children}
         {/*
           One Toaster for the whole app. Every failed request surfaces here with the backend's exact

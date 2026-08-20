@@ -1,0 +1,53 @@
+.wrapper {
+  @include flex(column, flex-start, stretch, $spacing-lg);
+}
+
+.toolbar {
+  max-width: 24em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+// Dim the grid while a new page loads. `placeholderData` keeps the previous page on screen instead of
+// flashing skeletons, so this is the only signal that something is in flight.
+.stale {
+  opacity: 0.55;
+  transition: opacity $transition-base;
+  pointer-events: none;
+}
+
+.pagination {
+  @include flex(row, center, center, $spacing-md);
+  flex-wrap: wrap;
+}
+
+.empty {
+  @include flex(column, center, center, $spacing-sm);
+  padding: $spacing-2xl $spacing-lg;
+  text-align: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+}
+
+.muted {
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+}
+
+.errorText {
+  font-size: $font-size-sm;
+  color: var(--color-danger);
+}

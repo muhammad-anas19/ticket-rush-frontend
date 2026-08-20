@@ -19,33 +19,61 @@ export const axiosClient = axios.create({
 });
 
 /**
- * Attaches the access token from the NextAuth session.
+ * The access token, held in module scope and refreshed by `AuthTokenSync` (see app/providers.tsx).
  *
- * `getSession()` reads NextAuth's `/api/auth/session` endpoint on the Next.js server, which decrypts
- * the cookie and runs the `session` callback. So the token this reads has already been refreshed by
- * the `jwt` callback if it was near expiry — refresh happens server-side and this code never sees a
- * refresh token (TR-DEC-018). There is deliberately no 401 → refresh → retry interceptor here, which
- * is the machinery the previous project needed.
+ * ─── Why this exists, and what it replaced ───────────────────────────────────
  *
- * Note what this design costs, stated plainly: the token is in client-side JavaScript memory
- * (TR-DEC-002), so an XSS payload can read and exfiltrate it and use it from anywhere until it
- * expires. The 15-minute lifetime IS the blast radius. In exchange, an `Authorization` header is never
- * attached automatically by the browser, so the API is structurally CSRF-immune — no CSRF token, no
- * guard, no double-submit cookie.
+ * The first version called `await getSession()` inside the request interceptor, on EVERY request, with a
+ * comment claiming NextAuth cached it. **That comment was wrong.** `getSession()` is a raw `fetch` to
+ * `/api/auth/session` with no cache at all:
  *
- * `getSession()` is cached by NextAuth per page, so this is not an HTTP round trip per request.
+ *   export async function getSession(params) {
+ *     const session = await fetchData("session", ...);      // ← real network call, every time
+ *     getNewBroadcastChannel().postMessage({ ... });        // ← and it notifies other tabs
+ *     return session;
+ *   }
+ *
+ * So every API call cost a second HTTP round trip, and the BroadcastChannel post could make OTHER open
+ * tabs refetch their session too. Loading a page with three queries meant three extra session calls plus
+ * three broadcasts. That is what showed up in the network tab as repeated `/api/auth/session` requests.
+ *
+ * Now the token is written here once whenever the session changes, and read synchronously per request.
+ */
+let accessToken: string | null = null;
+
+/** Called by `AuthTokenSync` on every session change. Not for use anywhere else. */
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
+}
+
+/**
+ * Attaches the access token as a Bearer header.
+ *
+ * Synchronous in the common case — no await, no fetch. The `getSession()` fallback covers exactly one
+ * situation: a request firing before `AuthTokenSync`'s effect has run, which can happen on the very first
+ * render. Without it, that request would go out unauthenticated and 401 for no good reason.
+ *
+ * What this design costs, stated plainly: the token is in client-side JavaScript memory (TR-DEC-002), so
+ * an XSS payload can read and exfiltrate it and use it from anywhere until it expires. The 15-minute
+ * lifetime IS the blast radius. In exchange an `Authorization` header is never attached automatically by
+ * the browser, so the API is structurally CSRF-immune — no CSRF token, no guard, no double-submit cookie.
  */
 axiosClient.interceptors.request.use(async (config) => {
-  // Browser only. On the server, callers should use `auth()` and pass the token explicitly —
-  // getSession() has no cookie context there and would silently return null.
+  // Browser only. On the server, callers should use `auth()` and pass the token explicitly — getSession()
+  // has no cookie context there and would silently return null.
   if (typeof window === 'undefined') {
     return config;
   }
 
-  const session = await getSession();
+  if (!accessToken) {
+    // `broadcast: false` so this fallback does not tell every other tab to refetch its session — the
+    // cascade that made the original problem worse than a single extra call.
+    const session = await getSession({ broadcast: false } as Parameters<typeof getSession>[0]);
+    accessToken = session?.accessToken ?? null;
+  }
 
-  if (session?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.accessToken}`;
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
 
   return config;

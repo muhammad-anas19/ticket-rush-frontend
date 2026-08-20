@@ -165,6 +165,13 @@ export function SessionPanel() {
       )}
 
       <div className={styles.actions}>
+        {/* Only organisers see this. RolesGuard enforces it server-side regardless — this just avoids
+            offering a link that would 403. */}
+        {(me?.role ?? session?.user.role) === 'organiser' && (
+          <Link href="/organiser/events/new">
+            <Button>Create an event</Button>
+          </Link>
+        )}
         <Button variant="secondary" onClick={() => void signOut({ callbackUrl: '/' })}>
           Sign out
         </Button>

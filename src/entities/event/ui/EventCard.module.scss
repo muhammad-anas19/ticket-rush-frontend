@@ -1,0 +1,44 @@
+.card {
+  @include flex(column, flex-start, stretch, $spacing-sm);
+  padding: $spacing-md;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  transition: border-color $transition-fast, transform $transition-fast;
+
+  &:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+  }
+}
+
+.header {
+  @include flex(row, space-between, flex-start, $spacing-sm);
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+}
+
+.meta {
+  @include flex(column, flex-start, flex-start, $spacing-3xs);
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+}
+
+.footer {
+  @include flex(row, space-between, center, $spacing-sm);
+  padding-top: $spacing-sm;
+  border-top: 1px solid var(--color-border);
+}
+
+.price {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+}
+
+.soldOut {
+  opacity: 0.6;
+}

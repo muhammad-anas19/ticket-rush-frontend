@@ -1,0 +1,54 @@
+.header {
+  @include flex(row, space-between, center, $spacing-md);
+  flex-wrap: wrap;
+  padding: $spacing-sm $spacing-lg;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav {
+  @include flex(row, flex-start, center, $spacing-lg);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+}
+
+.links {
+  @include flex(row, flex-start, center, $spacing-md);
+  flex-wrap: wrap;
+}
+
+.link {
+  @include focus-ring;
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+  padding: $spacing-2xs 0;
+
+  &:hover { color: var(--color-text); }
+}
+
+.active {
+  @include focus-ring;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--color-text);
+  padding: $spacing-2xs 0;
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.account {
+  @include flex(row, flex-end, center, $spacing-sm);
+  flex-wrap: wrap;
+}
+
+.email {
+  @include truncate;
+  max-width: 14em;
+  font-size: $font-size-xs;
+  color: var(--color-text-muted);
+}
+
+.muted { font-size: $font-size-sm; color: var(--color-text-muted); }

@@ -35,6 +35,35 @@ export const authConfig = {
 
   callbacks: {
     /**
+     * A VIEW over the decoded token. Lives in the SLIM config, and that placement is the fix for a real
+     * bug rather than a stylistic choice.
+     *
+     * Middleware builds NextAuth from this file alone. When this callback lived only in the full config,
+     * the middleware's `auth.user` had NO `role` — NextAuth fell back to its default session shape
+     * (name/email/image). So the organiser gate read `auth?.user?.role !== 'organiser'` as
+     * `undefined !== 'organiser'` → true, and **every organiser was redirected away from
+     * `/organiser/*`.** The gate worked perfectly; it was just reading a field that did not exist there.
+     *
+     * The lesson generalises beyond this project: with a split config, **anything that shapes the
+     * session must live in the half that middleware also loads**, or the session means different things
+     * in different places. That divergence is silent — no error, no warning, just a missing field.
+     *
+     * Safe on the Edge because it is pure object mapping: no Node APIs, no drivers, no fetch.
+     *
+     * Note precisely what crosses this boundary and what does not:
+     *   accessToken  → exposed (TR-DEC-002), bounded by a 15-minute lifetime.
+     *   refreshToken → NOT exposed (TR-DEC-018). It stays in the JWT, server-side only.
+     * Adding one line here would turn a bounded XSS incident into a 7-day account takeover.
+     */
+    session({ session, token }) {
+      session.accessToken = token.accessToken;
+      session.error = token.error;
+      session.user.id = token.id;
+      session.user.role = token.role;
+      return session;
+    },
+
+    /**
      * Used by middleware to decide whether to allow a request.
      *
      * Note what this is NOT: a security boundary. It stops the page shell rendering and redirects
@@ -63,9 +92,36 @@ export const authConfig = {
         return Response.redirect(new URL('/', nextUrl));
       }
 
-      // Everything else is public in M1. M2 adds organiser-only routes here — and returning `false`
-      // for those IS correct, because sending an unauthenticated visitor to the login page is
-      // exactly what should happen.
+      /**
+       * Organiser-only route prefix.
+       *
+       * Returning `false` here IS correct — unlike the auth-page case above — because `false` means
+       * "send them to `pages.signIn`", and bouncing an unauthenticated visitor to the login page is
+       * exactly the desired behaviour. NextAuth appends `?callbackUrl=` so they land back here after
+       * signing in.
+       */
+      if (nextUrl.pathname.startsWith('/organiser')) {
+        if (!isLoggedIn) {
+          return false;
+        }
+
+        /**
+         * Signed in but the wrong role. Redirect home rather than to login — sending them to a login
+         * page they are already past is a dead end that reads as a broken app.
+         *
+         * NOTE the role here comes from the session cookie, so it can be up to one access-token
+         * lifetime stale. That is acceptable for a redirect (worst case an ex-organiser sees a form
+         * whose submit 403s) and would NOT be acceptable as the only check — which is why the API
+         * enforces it independently.
+         */
+        if (auth?.user?.role !== 'organiser') {
+          return Response.redirect(new URL('/', nextUrl));
+        }
+
+        return true;
+      }
+
+      // Everything else is public: browsing events requires no account.
       return true;
     },
   },

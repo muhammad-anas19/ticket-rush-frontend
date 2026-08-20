@@ -1,0 +1,67 @@
+.page {
+  @include flex(column, flex-start, stretch, $spacing-lg);
+  max-width: 46em;
+  margin: 0 auto;
+  padding: $spacing-2xl $spacing-lg;
+}
+
+.back {
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+
+  &:hover { color: var(--color-text); }
+}
+
+.card {
+  @include flex(column, flex-start, stretch, $spacing-md);
+  padding: $spacing-xl;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+}
+
+.header {
+  @include flex(row, space-between, flex-start, $spacing-md);
+}
+
+.rows {
+  @include flex(column, flex-start, stretch, $spacing-xs);
+}
+
+.row {
+  @include flex(row, space-between, center, $spacing-sm);
+  padding: $spacing-xs $spacing-sm;
+  background-color: var(--color-bg);
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+}
+
+.key { color: var(--color-text-muted); }
+
+.price {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+}
+
+.description {
+  color: var(--color-text-muted);
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+}
+
+.note {
+  font-size: $font-size-xs;
+  color: var(--color-text-muted);
+  line-height: $line-height-normal;
+}
+
+.errorBox {
+  @include flex(column, center, center, $spacing-sm);
+  padding: $spacing-2xl;
+  text-align: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+}
+
+.errorText { color: var(--color-danger); font-size: $font-size-sm; }

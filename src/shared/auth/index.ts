@@ -251,22 +251,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return refreshAccessToken(token);
     },
 
-    /**
-     * A VIEW. Runs whenever the session is read — `auth()`, `useSession()`, `getSession()`.
-     *
-     * Note precisely what crosses this boundary and what does not:
-     *   accessToken   → exposed. TR-DEC-002, bounded by a 15-minute lifetime.
-     *   refreshToken  → NOT exposed. TR-DEC-018. It stays in the token above, server-side only.
-     *
-     * That asymmetry is the entire reason `jwt` and `session` are separate functions. Adding one
-     * line here would turn a bounded XSS incident into a 7-day account takeover.
-     */
-    session({ session, token }) {
-      session.accessToken = token.accessToken;
-      session.error = token.error;
-      session.user.id = token.id;
-      session.user.role = token.role;
-      return session;
-    },
+    // `session` is inherited from authConfig via the spread above — it MUST live there, because
+    // middleware loads only the slim config and would otherwise see a session with no `role`.
   },
 });

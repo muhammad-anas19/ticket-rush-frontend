@@ -1,4 +1,8 @@
-export type UserRole = 'organiser' | 'attendee';
+// Re-exported so consumers can keep importing the role from the user entity, while exactly one
+// definition exists. `shared` owns it because the FSD rule forbids `shared/auth` importing upward from
+// `entities`.
+export type { UserRole } from '@/shared/model/roles';
+import type { UserRole } from '@/shared/model/roles';
 
 export interface User {
   id: string;

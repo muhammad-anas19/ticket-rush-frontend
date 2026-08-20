@@ -1,6 +1,10 @@
 import type { DefaultSession } from 'next-auth';
 
-export type UserRole = 'organiser' | 'attendee';
+// Re-exported, not redeclared. Canonical definition: shared/model/roles.ts — see that file for why a
+// duplicated type is dangerous even while both copies agree.
+import type { UserRole } from '../model/roles';
+
+export type { UserRole };
 
 /** What the backend's /auth/login and /auth/register return. */
 export interface BackendAuthResponse {

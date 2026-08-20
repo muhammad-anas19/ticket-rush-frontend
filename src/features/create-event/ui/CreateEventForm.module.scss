@@ -1,0 +1,13 @@
+.form {
+  @include flex(column, flex-start, stretch, $spacing-md);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+
+  @include respond-to(sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+}

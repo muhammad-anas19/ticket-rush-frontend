@@ -1,6 +1,6 @@
 .page {
   @include flex(column, flex-start, stretch, $spacing-lg);
-  max-width: 42em;
+  max-width: 68em;
   margin: 0 auto;
   padding: $spacing-2xl $spacing-lg;
 }
