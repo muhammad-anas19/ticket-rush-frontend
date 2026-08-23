@@ -1,0 +1,8 @@
+.activeHold {
+  @include flex(row, flex-end, center, $spacing-sm);
+  flex-wrap: wrap;
+}
+
+.countdownRow {
+  @include flex(row, flex-end, center, $spacing-xs);
+}

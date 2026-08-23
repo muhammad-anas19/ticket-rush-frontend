@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 import { useEvent } from '@/entities/event/hooks/useEvents';
+import { HoldTicket } from '@/features/hold-ticket/ui/HoldTicket';
 import { getErrorMessage } from '@/shared/api/errorMessage';
 import { formatCents } from '@/shared/lib/money';
 import { Badge, Button, Skeleton } from '@/shared/ui';
@@ -94,10 +95,7 @@ export function EventDetail({ id }: { id: string }) {
 
         <div className={styles.header}>
           <span className={styles.price}>{formatCents(event.priceCents)}</span>
-          {/* M3 replaces this with a real hold. Disabled rather than hidden, so the flow stays visible. */}
-          <Button disabled title="Ticket holds arrive in Module 3">
-            {event.isSoldOut ? 'Sold out' : 'Hold a ticket (M3)'}
-          </Button>
+          <HoldTicket eventId={event.id} isSoldOut={event.isSoldOut} />
         </div>
 
         <p className={styles.note}>
