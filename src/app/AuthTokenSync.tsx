@@ -27,8 +27,11 @@ export function AuthTokenSync() {
 
     // Explicitly null on sign-out. Leaving a stale token in module scope would keep attaching a dead
     // credential to requests — 401s that look like a backend problem.
-    setAccessToken(session?.accessToken ?? null);
-  }, [session?.accessToken, status]);
+    // Expiry passed alongside the token so the interceptor can decide whether it is still usable
+    // WITHOUT spending a request to find out. Omitting it was Bug 2 in axiosClient.ts: the client held
+    // a token it could not evaluate, so an expired one was used until a timer happened to fire.
+    setAccessToken(session?.accessToken ?? null, session?.accessTokenExpiresAt ?? 0);
+  }, [session?.accessToken, session?.accessTokenExpiresAt, status]);
 
   return null;
 }

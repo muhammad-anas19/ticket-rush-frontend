@@ -57,6 +57,9 @@ export const authConfig = {
      */
     session({ session, token }) {
       session.accessToken = token.accessToken;
+      // The client needs this to know when to ask for a fresh session. Still no refreshToken — that
+      // asymmetry is the whole point of this callback being separate from `jwt`.
+      session.accessTokenExpiresAt = token.accessTokenExpiresAt;
       session.error = token.error;
       session.user.id = token.id;
       session.user.role = token.role;

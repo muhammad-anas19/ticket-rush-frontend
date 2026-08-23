@@ -41,6 +41,15 @@ declare module 'next-auth' {
    */
   interface Session {
     accessToken?: string;
+    /**
+     * When the access token expires, as a Unix ms timestamp.
+     *
+     * Exposed so the client can tell whether its cached token is still usable BEFORE spending a request
+     * to find out. Safe to expose: a timestamp is not a credential, and the token it describes is
+     * already readable (TR-DEC-002). Without it the client cannot distinguish "my token is fine" from
+     * "my token died four minutes ago", which is exactly the bug this fixed.
+     */
+    accessTokenExpiresAt?: number;
     error?: 'RefreshTokenError';
     user: {
       id: string;

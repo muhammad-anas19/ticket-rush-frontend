@@ -19,57 +19,98 @@ export const axiosClient = axios.create({
 });
 
 /**
- * The access token, held in module scope and refreshed by `AuthTokenSync` (see app/providers.tsx).
+ * The cached access token and its expiry, kept in module scope and written by `AuthTokenSync`.
  *
- * ─── Why this exists, and what it replaced ───────────────────────────────────
+ * ─── Two bugs led to this design; both are worth knowing ─────────────────────
  *
- * The first version called `await getSession()` inside the request interceptor, on EVERY request, with a
- * comment claiming NextAuth cached it. **That comment was wrong.** `getSession()` is a raw `fetch` to
- * `/api/auth/session` with no cache at all:
+ * **Bug 1 — a session fetch per request.** The first version called `await getSession()` in the request
+ * interceptor with a comment claiming NextAuth cached it. It does not: `getSession()` is a raw `fetch`
+ * to `/api/auth/session` every time, *and* it posts to a BroadcastChannel that can make other tabs
+ * refetch too. Every API call cost a second round trip.
  *
- *   export async function getSession(params) {
- *     const session = await fetchData("session", ...);      // ← real network call, every time
- *     getNewBroadcastChannel().postMessage({ ... });        // ← and it notifies other tabs
- *     return session;
- *   }
+ * **Bug 2 — fixing that broke refresh.** Caching the token removed the accidental refresh mechanism.
+ * With a 15-minute token and a 10-minute `refetchInterval`, the arithmetic left a dead zone:
  *
- * So every API call cost a second HTTP round trip, and the BroadcastChannel post could make OTHER open
- * tabs refetch their session too. Loading a page with three queries meant three extra session calls plus
- * three broadcasts. That is what showed up in the network tab as repeated `/api/auth/session` requests.
+ *     t=10  interval fires, token still has 5 min → jwt callback declines to refresh
+ *     t=15  token EXPIRES
+ *     t=15–20  every request 401s, and NOTHING refetches   ← the reported symptom
+ *     t=20  next interval finally refreshes
  *
- * Now the token is written here once whenever the session changes, and read synchronously per request.
+ * Polling can only ever paper over that; the interval and the TTL are independent numbers and any
+ * mismatch reopens a window. So the trigger is now **expiry, not a timer**: ask for a fresh session
+ * exactly when the token is about to die, and never otherwise.
  */
 let accessToken: string | null = null;
+let accessTokenExpiresAt = 0;
 
-/** Called by `AuthTokenSync` on every session change. Not for use anywhere else. */
-export function setAccessToken(token: string | null): void {
+/** Refresh this long before actual expiry, to cover flight time and clock skew between hosts. */
+const EXPIRY_SKEW_MS = 30_000;
+
+/** Called by `AuthTokenSync` whenever the session changes. Not for use anywhere else. */
+export function setAccessToken(token: string | null, expiresAt = 0): void {
   accessToken = token;
+  accessTokenExpiresAt = expiresAt;
 }
 
 /**
- * Attaches the access token as a Bearer header.
+ * One shared in-flight session fetch.
  *
- * Synchronous in the common case — no await, no fetch. The `getSession()` fallback covers exactly one
- * situation: a request firing before `AuthTokenSync`'s effect has run, which can happen on the very first
- * render. Without it, that request would go out unauthenticated and 401 for no good reason.
+ * Without this, a page firing four queries at once with an expired token makes four concurrent
+ * `getSession()` calls, each triggering the `jwt` callback, each attempting a refresh-token rotation.
+ * Against a backend with reuse detection that is the parallel-refresh race — and it would revoke the
+ * whole token family, hard-signing-out a legitimate user.
  *
- * What this design costs, stated plainly: the token is in client-side JavaScript memory (TR-DEC-002), so
- * an XSS payload can read and exfiltrate it and use it from anywhere until it expires. The 15-minute
- * lifetime IS the blast radius. In exchange an `Authorization` header is never attached automatically by
- * the browser, so the API is structurally CSRF-immune — no CSRF token, no guard, no double-submit cookie.
+ * The backend's 30-second grace window (TR-DEC-017) already prevents the worst outcome, but relying on
+ * it for something this cheap to avoid would be careless. Note this dedupe genuinely WORKS here, unlike
+ * in NextAuth's server-side `jwt` callback: the browser is a single heap, so every caller sees the same
+ * module-level promise.
+ */
+let sessionFetch: Promise<void> | null = null;
+
+function refreshSessionOnce(): Promise<void> {
+  if (!sessionFetch) {
+    sessionFetch = getSession({ broadcast: false } as Parameters<typeof getSession>[0])
+      .then((session) => {
+        accessToken = session?.accessToken ?? null;
+        accessTokenExpiresAt = session?.accessTokenExpiresAt ?? 0;
+      })
+      .catch(() => {
+        // Leave the stale values in place. Clearing them would turn a transient network failure into a
+        // guaranteed unauthenticated request, and the stale token may still be valid.
+      })
+      .finally(() => {
+        sessionFetch = null;
+      });
+  }
+  return sessionFetch;
+}
+
+function tokenIsUsable(): boolean {
+  return Boolean(accessToken) && Date.now() < accessTokenExpiresAt - EXPIRY_SKEW_MS;
+}
+
+/**
+ * Attaches the access token as a Bearer header, fetching a fresh session only when the cached one is
+ * missing or about to expire.
+ *
+ * Reading the session server-side runs our `jwt` callback, which rotates the access token when it is
+ * near expiry — so **this call IS the refresh mechanism**, triggered by need rather than by a clock.
+ * In the common case it does nothing at all.
+ *
+ * The cost of this design, stated plainly: the token sits in client-side JavaScript memory
+ * (TR-DEC-002), so an XSS payload can read and exfiltrate it and use it from anywhere until it expires.
+ * The 15-minute lifetime IS the blast radius. In exchange, an `Authorization` header is never attached
+ * automatically by the browser, so the API is structurally CSRF-immune.
  */
 axiosClient.interceptors.request.use(async (config) => {
-  // Browser only. On the server, callers should use `auth()` and pass the token explicitly — getSession()
-  // has no cookie context there and would silently return null.
+  // Browser only. On the server, callers should use `auth()` and pass the token explicitly —
+  // getSession() has no cookie context there and would silently return null.
   if (typeof window === 'undefined') {
     return config;
   }
 
-  if (!accessToken) {
-    // `broadcast: false` so this fallback does not tell every other tab to refetch its session — the
-    // cascade that made the original problem worse than a single extra call.
-    const session = await getSession({ broadcast: false } as Parameters<typeof getSession>[0]);
-    accessToken = session?.accessToken ?? null;
+  if (!tokenIsUsable()) {
+    await refreshSessionOnce();
   }
 
   if (accessToken) {
@@ -88,21 +129,44 @@ axiosClient.interceptors.request.use(async (config) => {
  *   - a response body in our envelope shape → use its `message` and `errors`.
  *   - anything else → the server returned something unexpected; fall back to the status text.
  *
- * Note there is deliberately NO 401 → refresh → retry flow here — that is absent by design, not
- * missing. Refresh lives in NextAuth's `jwt` callback, server-side, because the refresh token never
- * reaches the browser (TR-DEC-018). The parallel-refresh race that a browser interceptor solves with
- * one shared in-flight promise is instead handled by the backend's 30-second grace window
- * (TR-DEC-017), because the promise trick does not work server-side where concurrent callbacks may
- * run in different processes with separate heaps.
+ * It also carries a 401 recovery path. Note what that is and is NOT: it re-reads the SESSION so the
+ * `jwt` callback can rotate the token server-side. The browser never touches a refresh token
+ * (TR-DEC-018), so this is not the classic "refresh in the interceptor" pattern — it is "ask the server
+ * for a fresh session and try again once".
  */
 axiosClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<ApiErrorBody>) => {
+  async (error: AxiosError<ApiErrorBody>) => {
     if (!error.response) {
       throw new ApiError(error.message || 'Network error', 0);
     }
 
     const { status, data, statusText } = error.response;
+
+    /**
+     * A 401 the expiry check did not predict — recover once.
+     *
+     * The proactive check above should make this rare, but it cannot be exhaustive: the clock on this
+     * machine may disagree with the API's, the token may have been revoked server-side, or the page may
+     * have been restored from a background tab with a long-stale cache.
+     *
+     * Forcing a session read triggers the `jwt` callback, which rotates the token if it can. `_retried`
+     * caps this at exactly one attempt — without it, a genuinely dead session would loop forever, and
+     * each iteration would be a refresh attempt against a backend that treats repeats as theft.
+     */
+    const config = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+
+    if (status === 401 && config && !config._retried && typeof window !== 'undefined') {
+      config._retried = true;
+      await refreshSessionOnce();
+
+      if (accessToken) {
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${accessToken}`;
+        return axiosClient(config);
+      }
+    }
+
     const message =
       (data && typeof data === 'object' && data.message) || statusText || 'Request failed';
 

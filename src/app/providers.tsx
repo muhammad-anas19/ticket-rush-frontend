@@ -78,16 +78,22 @@ export function Providers({ children }: { children: ReactNode }) {
      *   2. Its remaining job is keeping the access token fresh, and `refetchInterval` does that on a
      *      predictable schedule instead of "whenever the user alt-tabs".
      *
-     * `refetchInterval` is 10 minutes against a 15-minute access token, so the token is renewed with
-     * ~5 minutes of headroom. Reading the session runs our `jwt` callback, which refreshes the access
-     * token when it is close to expiry — so this interval IS the refresh mechanism, not just a poll.
+     * `refetchInterval` is OFF too, and that is the more interesting decision. It was briefly set to 10
+     * minutes against a 15-minute token, which left a dead zone: the interval fired at t=10 when the
+     * token still had 5 minutes (so no refresh), the token died at t=15, and nothing refetched until
+     * t=20 — five minutes where every request 401ed with no refresh in sight.
      *
-     * The one case this trades away: a laptop that SLEEPS. `setInterval` does not fire while suspended
-     * and does not catch up, so a machine waking after 40 minutes has a stale token until the next tick.
-     * The interceptor's `getSession()` fallback and the API's 401 both cover it; if that proves annoying
-     * in practice, re-enabling focus refetch is a one-word change and this comment is the reason why.
+     * The lesson is that a poll interval and a token TTL are independent numbers, so ANY pairing leaves
+     * a window. Refresh is now driven by **expiry**, in the axios interceptor: it checks whether the
+     * cached token is still usable and asks for a fresh session only when it is not. Correct by
+     * construction rather than by choosing lucky numbers, and it costs zero requests while the token is
+     * valid.
+     *
+     * This also fixes the sleeping-laptop case a timer cannot: a machine waking after 40 minutes finds
+     * an expired token on its next request and refreshes then, rather than waiting for a tick that never
+     * caught up.
      */
-    <SessionProvider refetchOnWindowFocus={false} refetchInterval={10 * 60}>
+    <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
       <QueryClientProvider client={queryClient}>
         {/* Keeps the axios client's token in step with the session. Renders nothing. */}
         <AuthTokenSync />
