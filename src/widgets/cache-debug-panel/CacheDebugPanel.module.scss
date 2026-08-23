@@ -1,0 +1,30 @@
+// Fixed, out of the document flow, deliberately: this is a debug affordance, not page content —
+// per the frontend CLAUDE.md scope rule ("little visible UI"), it should never compete with the
+// actual event listing for layout space or attention.
+.panel {
+  @include flex(row, flex-start, center, $spacing-sm);
+  position: fixed;
+  right: $spacing-lg;
+  bottom: $spacing-lg;
+  padding: $spacing-xs $spacing-sm;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  font-size: $font-size-xs;
+  z-index: 10;
+}
+
+.label {
+  font-family: $font-family-mono;
+  color: var(--color-text-muted);
+}
+
+.counts {
+  font-family: $font-family-mono;
+  color: var(--color-text-muted);
+}
+
+.errorText {
+  color: var(--color-danger);
+}

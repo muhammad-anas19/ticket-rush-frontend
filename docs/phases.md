@@ -19,8 +19,9 @@ on visual polish is an hour not spent on the five technologies this project exis
 | M0 | n/a — all covered ground | ✅ Complete & verified |
 | M1 | ✅ Graded (`backend/docs/qa/phase-1-auth-understanding-check.md` Q6–Q10) | ✅ Complete & verified — [walkthroughs/m1-auth-code-walkthrough.md](walkthroughs/m1-auth-code-walkthrough.md) · [concepts/01-nextauth.md](concepts/01-nextauth.md) · [walkthroughs/m1-auth-network-flow.md](walkthroughs/m1-auth-network-flow.md) |
 | M2 | n/a — covered ground (FSD, RHF+Yup, TanStack) | ✅ Complete & verified (see `backend/docs/walkthroughs/m2-events-code-walkthrough.md`) |
-| M3 | ⛔ blocked on the **backend M3 gate** — Q9 of the M2 check was unanswered | not started |
-| M4–M8 | not started | not started |
+| M3 | ⛔ blocked on the **backend M3 gate** — Q9 of the M2 check was unanswered | ✅ Complete — `HoldTicket`, `useHold`, deadline-driven `useCountdown` (undocumented; no walkthrough written yet) |
+| M4 | n/a — client-side cache-aside is TanStack Query, already in daily use | ✅ Complete & verified — [concepts/04-client-vs-server-caching.md](concepts/04-client-vs-server-caching.md) · `CacheDebugPanel` widget |
+| M5–M8 | not started | not started |
 
 **Why M0 and M2 had no gate:** FSD, SCSS modules, TanStack Query and RHF+Yup are all recorded as already
 practiced in P1, and scaffolding or reusing them introduces no new concept. **M1 did have one** — NextAuth
@@ -185,7 +186,17 @@ used daily to something new.
 **The availability count is deliberately not cached.** A stale event title is cosmetic; a stale
 availability count is a correctness bug, because someone acts on it.
 
-**Docs.** `concepts/04-client-vs-server-caching.md`
+**Complete.** `widgets/cache-debug-panel/CacheDebugPanel.tsx`, mounted in the root layout — polls
+`GET /api/cache/stats` every 5s (`refetchIntervalInBackground: true` so it keeps moving even
+unfocused), showing hit ratio and raw hit/miss counts. Confirmed rendering server-side (`curl` on the
+running dev server showed the panel's markup in the initial HTML) and picking up real numbers from
+the live backend. No new entity folder — this isn't one of the five domain entities, and forcing a
+`model/api/hooks` split on a five-line debug fetch would be the pattern applied because it exists
+rather than because anything needs it.
+
+**Docs.** [concepts/04-client-vs-server-caching.md](concepts/04-client-vs-server-caching.md) — the
+TanStack-Query-vs-Redis comparison in full, including why deduplicating concurrent requests was free
+on one side and had to be hand-built with a Redis lock on the other.
 
 ---
 
