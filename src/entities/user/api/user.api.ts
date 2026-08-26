@@ -29,8 +29,3 @@ export interface RegisterPayload {
 export async function registerUser(payload: RegisterPayload): Promise<User> {
   return api.post<User>('/auth/register', payload);
 }
-
-/** Reads the CURRENT user from the database, not the token's claims. */
-export async function fetchMe(): Promise<User> {
-  return api.get<User>('/auth/me');
-}

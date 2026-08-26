@@ -1,0 +1,15 @@
+.page {
+  @include flex(column, flex-start, stretch, $spacing-lg);
+  max-width: 60em;
+  margin: 0 auto;
+  padding: $spacing-2xl $spacing-lg;
+}
+
+.header {
+  @include flex(column, flex-start, flex-start, $spacing-xs);
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+}

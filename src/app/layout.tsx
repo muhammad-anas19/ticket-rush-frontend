@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import '@/shared/styles/index.scss';
-import { CacheDebugPanel } from '@/widgets/cache-debug-panel/CacheDebugPanel';
 import { SiteHeader } from '@/widgets/site-header/SiteHeader';
 import { Providers } from './providers';
 
@@ -23,12 +22,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           */}
           <SiteHeader />
           {children}
-          {/*
-            M4's debug panel — position: fixed, so it belongs at the root rather than one page.
-            It reads a server-wide counter (every client's requests move it, not just this tab's),
-            so mounting it once here is right regardless of which route is active.
-          */}
-          <CacheDebugPanel />
         </Providers>
       </body>
     </html>

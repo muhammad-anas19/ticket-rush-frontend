@@ -39,6 +39,20 @@ export function SiteHeader() {
             Events
           </Link>
 
+          {/* Any signed-in user, not just attendees — an organiser can hold and pay for a
+              ticket too, to their own or someone else's event. Gated on the session existing,
+              same non-security reasoning as the organiser links below: the page itself redirects
+              a signed-out visitor regardless of whether this link was ever shown. */}
+          {status === 'authenticated' && (
+            <Link
+              href="/me/tickets"
+              className={pathname === '/me/tickets' ? styles.active : styles.link}
+              aria-current={pathname === '/me/tickets' ? 'page' : undefined}
+            >
+              My tickets
+            </Link>
+          )}
+
           {/*
             Organiser-only links.
 

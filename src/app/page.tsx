@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 
 import { EventList } from '@/widgets/event-list/EventList';
-import { SessionPanel } from '@/widgets/session-panel/SessionPanel';
 import styles from './page.module.scss';
 
 export default function HomePage() {
@@ -20,8 +19,6 @@ export default function HomePage() {
       <Suspense fallback={null}>
         <EventList />
       </Suspense>
-
-      <SessionPanel />
     </main>
   );
 }

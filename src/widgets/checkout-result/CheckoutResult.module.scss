@@ -1,0 +1,34 @@
+.page {
+  @include flex(column, flex-start, stretch, $spacing-md);
+  max-width: 32em;
+  margin: $spacing-2xl auto;
+  padding: $spacing-lg;
+}
+
+.card {
+  @include flex(column, flex-start, stretch, $spacing-md);
+  padding: $spacing-lg;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  text-align: center;
+}
+
+.icon {
+  font-size: $font-size-2xl;
+}
+
+.errorText {
+  font-size: $font-size-sm;
+  color: var(--color-danger);
+}
+
+.muted {
+  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  @include flex(row, center, center, $spacing-sm);
+  flex-wrap: wrap;
+}

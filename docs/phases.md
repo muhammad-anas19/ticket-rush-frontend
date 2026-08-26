@@ -21,7 +21,7 @@ on visual polish is an hour not spent on the five technologies this project exis
 | M2 | n/a — covered ground (FSD, RHF+Yup, TanStack) | ✅ Complete & verified (see `backend/docs/walkthroughs/m2-events-code-walkthrough.md`) |
 | M3 | ⛔ blocked on the **backend M3 gate** — Q9 of the M2 check was unanswered | ✅ Complete — `HoldTicket`, `useHold`, deadline-driven `useCountdown` (undocumented; no walkthrough written yet) |
 | M4 | n/a — client-side cache-aside is TanStack Query, already in daily use | ✅ Complete & verified — [concepts/04-client-vs-server-caching.md](concepts/04-client-vs-server-caching.md) · `CacheDebugPanel` widget |
-| M5 | ✅ Explained backend-side — [backend/docs/concepts/05-stripe-payments-and-webhooks.md](../../backend/docs/concepts/05-stripe-payments-and-webhooks.md) | ⏳ pending real Stripe env keys |
+| M5 | ✅ Explained backend-side — [backend/docs/concepts/05-stripe-payments-and-webhooks.md](../../backend/docs/concepts/05-stripe-payments-and-webhooks.md) | ✅ Built & rendering-verified — real payment completion awaits the user's own Stripe test keys |
 | M6 | — | ⏸️ **Paused** — backend deferred, `backend/DECISIONS.md` `TR-DEC-030` |
 | M7 | n/a — see `backend/docs/concepts/07-websockets-and-realtime.md` | ✅ Complete — `socketClient`, `useEventAvailabilitySync`, wired into `EventDetail`. Built ahead of M5's frontend slice and M6, per `TR-DEC-030`. |
 | M8 | not started | not started |
@@ -205,15 +205,38 @@ on one side and had to be hand-built with a Redis lock on the other.
 
 ## M5 ★ — Stripe
 
-A checkout button redirecting to the hosted Checkout Session. Success and cancel pages. `/me/tickets`.
+**Complete, pending real Stripe keys.** `entities/order/` (types, api, `useOrder`/`useMyOrders`/
+`useCreateCheckoutSession`). `HoldTicket` grew a "Pay now" button next to "Release," calling
+`POST /api/holds/:holdId/checkout` and doing a hard `window.location.href` redirect to the
+returned Checkout URL — not a client-side route change, since it's leaving the app for a page
+Stripe hosts on a different origin entirely. `app/checkout/success`, `app/checkout/cancel`,
+`app/me/tickets` all built and verified rendering; the one thing NOT yet verifiable is an actual
+completed payment, since `backend/.env`'s `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` are still
+the shape-valid placeholders from M5's backend build — real end-to-end payment testing is the
+user's own next step once real test-mode keys are in place
+(`backend/docs/guides/stripe-test-setup.md`).
 
-**The success page cannot be trusted.** A user can navigate straight to it, and Stripe's redirect proves
-only that a browser was pointed somewhere — not that money moved. It is a UI convenience; **the webhook
-is the source of truth**. So the page polls or subscribes for the order's real status rather than
-asserting success.
+**The success page cannot be trusted — built that way, not just described that way.**
+`widgets/checkout-result/CheckoutResult.tsx` reads `?orderId=` and polls `GET /api/orders/:id`
+every 2s while `status === 'pending'`, stopping the instant it isn't. Stripe's redirect proves
+only that a browser was pointed somewhere — not that money moved; `order.status`, set exclusively
+by the webhook, is the only thing that decides what the page shows (`pending` → "confirming…",
+`paid` → confirmation + link to My tickets, `refunded` → TR-DEC-011's re-check-lost-the-seat
+explanation, `failed` → try again).
 
 That is precisely *why* webhooks exist rather than client callbacks (Q155), and building the page
 correctly is the cheapest way to internalise it.
+
+**`/me/tickets` needed one small backend addition first** — `GET /api/orders/mine` didn't exist
+(only the single-order poll did). Added with the same JOIN-not-N+1 discipline
+`EventsService.findAll()` already established (a LEFT JOIN for the event summary, not a query per
+row), and the same route-declaration-order trap `events/mine` already names (`orders/mine` must
+be declared before `orders/:id`, or Nest's `:id` would swallow it first).
+
+**Deliberately does NOT show a ticket code.** `Ticket` rows are M6's RabbitMQ consumer's job —
+paused (`TR-DEC-030`) — so a `paid` order shows honestly as "ticket generation pending" rather
+than a fabricated or empty ticket field. `frontend/CLAUDE.md`'s own trap, named rather than hit:
+"a ticket may not exist yet a second after payment — show a pending state, not an empty table."
 
 ---
 

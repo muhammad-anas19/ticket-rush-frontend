@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { useCreateHold, useReleaseHold } from '@/entities/hold/hooks/useHold';
 import type { Hold } from '@/entities/hold/model/hold.types';
+import { useCreateCheckoutSession } from '@/entities/order/hooks/useOrders';
 import { useCountdown } from '@/shared/lib/useCountdown';
 import { Badge, Button } from '@/shared/ui';
 import styles from './HoldTicket.module.scss';
@@ -33,6 +34,7 @@ export function HoldTicket({ eventId, isSoldOut }: HoldTicketProps) {
 
   const createHold = useCreateHold(eventId);
   const releaseHold = useReleaseHold();
+  const createCheckout = useCreateCheckoutSession();
 
   const countdown = useCountdown(activeHold?.expiresAt ?? new Date().toISOString());
 
@@ -78,6 +80,23 @@ export function HoldTicket({ eventId, isSoldOut }: HoldTicketProps) {
           }}
         >
           Release
+        </Button>
+        <Button
+          size="sm"
+          isLoading={createCheckout.isPending}
+          onClick={() => {
+            createCheckout.mutate(activeHold.id, {
+              onSuccess: ({ checkoutUrl }) => {
+                // A hard, full-page navigation, deliberately — this is leaving the app entirely for
+                // a page Stripe hosts on a different origin. A client-side route change (`router.push`)
+                // would be the wrong tool even if it could reach an external origin, because there is
+                // nothing about this transition that should preserve React state on the way out.
+                window.location.href = checkoutUrl;
+              },
+            });
+          }}
+        >
+          {createCheckout.isPending ? 'Redirecting…' : 'Pay now'}
         </Button>
       </div>
     );
