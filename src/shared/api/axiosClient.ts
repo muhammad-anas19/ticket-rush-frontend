@@ -90,6 +90,27 @@ function tokenIsUsable(): boolean {
 }
 
 /**
+ * The same expiry-aware "refresh only if needed" logic the request interceptor below uses,
+ * exposed for the one other place in the app that needs a Bearer token outside of an axios
+ * call: the WebSocket handshake (`shared/realtime/socketClient.ts`). Reusing this instead of a
+ * second token-fetching path means the socket and every HTTP call agree on what "a valid token"
+ * means, and a socket reconnect naturally re-runs this — so a token that rotated since the
+ * initial connection is picked up automatically, satisfying the "re-auth on reconnect"
+ * requirement without any reconnect-specific code of its own.
+ */
+export async function getSocketAuthToken(): Promise<string | null> {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  if (!tokenIsUsable()) {
+    await refreshSessionOnce();
+  }
+
+  return accessToken;
+}
+
+/**
  * Attaches the access token as a Bearer header, fetching a fresh session only when the cached one is
  * missing or about to expire.
  *

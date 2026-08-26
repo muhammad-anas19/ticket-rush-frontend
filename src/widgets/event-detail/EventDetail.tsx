@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 
+import { useEventAvailabilitySync } from '@/entities/event/hooks/useEventAvailabilitySync';
 import { useEvent } from '@/entities/event/hooks/useEvents';
 import { HoldTicket } from '@/features/hold-ticket/ui/HoldTicket';
 import { getErrorMessage } from '@/shared/api/errorMessage';
@@ -13,6 +14,11 @@ import styles from './EventDetail.module.scss';
 
 export function EventDetail({ id }: { id: string }) {
   const { data: event, isPending, isError, error } = useEvent(id);
+
+  // M7: joins `event:{id}`'s room for as long as this page is mounted, patching the cache
+  // directly on every push — called unconditionally (before the loading/error early returns)
+  // because it's a hook, and safely a no-op until `useEvent`'s own cache entry actually exists.
+  useEventAvailabilitySync(id);
 
   useEffect(() => {
     if (isError) toast.error(getErrorMessage(error), { id: `event-${id}` });

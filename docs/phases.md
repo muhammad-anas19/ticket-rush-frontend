@@ -21,7 +21,10 @@ on visual polish is an hour not spent on the five technologies this project exis
 | M2 | n/a — covered ground (FSD, RHF+Yup, TanStack) | ✅ Complete & verified (see `backend/docs/walkthroughs/m2-events-code-walkthrough.md`) |
 | M3 | ⛔ blocked on the **backend M3 gate** — Q9 of the M2 check was unanswered | ✅ Complete — `HoldTicket`, `useHold`, deadline-driven `useCountdown` (undocumented; no walkthrough written yet) |
 | M4 | n/a — client-side cache-aside is TanStack Query, already in daily use | ✅ Complete & verified — [concepts/04-client-vs-server-caching.md](concepts/04-client-vs-server-caching.md) · `CacheDebugPanel` widget |
-| M5–M8 | not started | not started |
+| M5 | ✅ Explained backend-side — [backend/docs/concepts/05-stripe-payments-and-webhooks.md](../../backend/docs/concepts/05-stripe-payments-and-webhooks.md) | ⏳ pending real Stripe env keys |
+| M6 | — | ⏸️ **Paused** — backend deferred, `backend/DECISIONS.md` `TR-DEC-030` |
+| M7 | n/a — see `backend/docs/concepts/07-websockets-and-realtime.md` | ✅ Complete — `socketClient`, `useEventAvailabilitySync`, wired into `EventDetail`. Built ahead of M5's frontend slice and M6, per `TR-DEC-030`. |
+| M8 | not started | not started |
 
 **Why M0 and M2 had no gate:** FSD, SCSS modules, TanStack Query and RHF+Yup are all recorded as already
 practiced in P1, and scaffolding or reusing them introduces no new concept. **M1 did have one** — NextAuth
@@ -227,17 +230,35 @@ seconds before the consumer runs.
 
 ## M7 ★ — Realtime
 
-A Socket.IO client in `shared/`, joining `event:{id}` on mount and leaving on unmount.
+**Complete.** `shared/realtime/socketClient.ts` — one shared, lazily-created Socket.IO connection
+for the whole app (`autoConnect: false`, `ensureConnected()` called by whoever needs it, never one
+socket per component). `entities/event/hooks/useEventAvailabilitySync.ts` — joins `event:{id}` on
+mount, leaves on unmount, wired into `widgets/event-detail/EventDetail.tsx`.
 
-**Live availability goes into the TanStack cache via `setQueryData`, not by triggering a refetch.** A
-socket message that causes an HTTP request has saved nothing — you have paid for a persistent connection
-and then polled anyway.
+**Live availability goes into the TanStack cache via `setQueryData`, not by triggering a refetch.**
+A socket message that causes an HTTP request has saved nothing — you have paid for a persistent
+connection and then polled anyway. Patches BOTH the detail cache entry and any already-cached list
+page containing this event (`setQueriesData` against `eventKeys.lists()`'s prefix), so navigating
+back to a list doesn't show a stale row either.
 
-Handshake authentication, and reconnect handling — plus re-auth on reconnect, since a socket that
-reconnects after a token expiry must not silently continue as an anonymous connection.
+**Handshake authentication, and reconnect handling — plus re-auth on reconnect** — solved with one
+property, not reconnect-specific code: `auth` is passed to `io()` as a FUNCTION
+(`shared/api/axiosClient.ts`'s new `getSocketAuthToken()`), which Socket.IO calls again before
+every single (re)connection attempt. `getSocketAuthToken()` reuses the exact same
+expiry-aware-refresh logic the axios interceptor already uses, so the socket and every REST call
+agree on what "a valid token" means, and a token that rotated since the initial connection is
+picked up automatically on the next reconnect.
 
-**The experiment lives here:** two tabs against two API instances, watching one go stale before
-`@socket.io/redis-adapter` is added.
+**Named scope boundary, not silently assumed away:** the backend's handshake requires SOME valid
+access token (`TR-DEC-013`) — there is no anonymous WebSocket path. A signed-out visitor still
+sees CORRECT availability on every fetch (M4's live merge holds regardless of who's asking), just
+not PUSHED updates without signing in first.
+
+**The experiment** (two tabs against two API instances, watching one go stale before
+`@socket.io/redis-adapter` is added, then watching it work) is a **backend-side** proof — see
+`backend/docs/walkthroughs/m7-websockets-code-walkthrough.md` §4 for the real transcript. The
+frontend consumes whichever instance the load balancer/dev setup points it at; there is nothing
+frontend-specific left to demonstrate about the adapter itself.
 
 ---
 
