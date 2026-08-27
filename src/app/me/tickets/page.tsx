@@ -6,12 +6,6 @@ import styles from './page.module.scss';
 
 export const metadata = { title: 'My tickets · TicketRush' };
 
-/**
- * A SERVER component so the wrong (unauthenticated) audience never receives the markup — same
- * reasoning `organiser/events/page.tsx` documents for its own gate. Not the security boundary
- * either way: `GET /api/orders/mine` is scoped to the caller's own `userId` server-side
- * regardless of what rendered here.
- */
 export default async function MyTicketsPage() {
   const session = await auth();
 

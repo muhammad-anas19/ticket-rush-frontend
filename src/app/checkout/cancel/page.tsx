@@ -3,9 +3,6 @@ import Link from 'next/link';
 import { Button } from '@/shared/ui';
 import styles from './page.module.scss';
 
-// Stripe's `cancel_url` carries no query param (see `OrdersService.createCheckoutSession()`), so
-// this page can't say WHICH hold was abandoned — only that checkout was. If the hold is still
-// active, the event page's own countdown/Pay button are exactly where to retry from.
 export default function CheckoutCancelPage() {
   return (
     <main className={styles.page}>

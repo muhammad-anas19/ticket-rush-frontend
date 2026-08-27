@@ -9,19 +9,16 @@ function toParams(params: OrderListParams): Record<string, string | number> {
   ) as Record<string, string | number>;
 }
 
-/** Starts (or resumes) payment for a held ticket. Redirect the browser to the returned URL. */
 export async function createCheckoutSession(
   holdId: string,
 ): Promise<{ checkoutUrl: string; orderId: string }> {
   return api.post<{ checkoutUrl: string; orderId: string }>(`/holds/${holdId}/checkout`);
 }
 
-/** Owner-only poll target after a Checkout redirect — never trust the redirect itself. */
 export async function fetchOrder(id: string): Promise<Order> {
   return api.get<Order>(`/orders/${id}`);
 }
 
-/** `/me/tickets`'s data source. */
 export async function fetchMyOrders(
   params: OrderListParams = {},
 ): Promise<PaginatedResponse<Order>> {

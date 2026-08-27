@@ -15,9 +15,6 @@ import styles from './EventDetail.module.scss';
 export function EventDetail({ id }: { id: string }) {
   const { data: event, isPending, isError, error } = useEvent(id);
 
-  // M7: joins `event:{id}`'s room for as long as this page is mounted, patching the cache
-  // directly on every push — called unconditionally (before the loading/error early returns)
-  // because it's a hook, and safely a no-op until `useEvent`'s own cache entry actually exists.
   useEventAvailabilitySync(id);
 
   useEffect(() => {
@@ -38,8 +35,6 @@ export function EventDetail({ id }: { id: string }) {
       <main className={styles.page}>
         <div className={styles.errorBox}>
           <h3>Could not load this event</h3>
-          {/* The backend's exact message. A 404 already says "Event not found" — the right text, written
-              once, on the server. */}
           <p className={styles.errorText}>{getErrorMessage(error)}</p>
           <Link href="/">
             <Button variant="secondary">Back to events</Button>
@@ -76,11 +71,6 @@ export function EventDetail({ id }: { id: string }) {
           </div>
           <div className={styles.row}>
             <span className={styles.key}>Starts</span>
-            {/*
-              Rendered in the VIEWER's timezone from a UTC instant. `dateStyle: 'full'` is deliberately
-              verbose here: on a detail page the user is deciding whether they can attend, and an
-              ambiguous time is worse than a wordy one.
-            */}
             <time dateTime={event.startsAt}>
               {startsAt.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}
             </time>

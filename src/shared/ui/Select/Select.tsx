@@ -14,16 +14,6 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   placeholder?: string;
 }
 
-/**
- * A native `<select>`, deliberately.
- *
- * A custom dropdown means reimplementing keyboard navigation, type-ahead, focus trapping, screen
- * reader semantics, and mobile behaviour — and getting all of that right is a week's work that a
- * native element already does. The design system doc's rule applies: a shared component is justified
- * when it abstracts shared *behaviour*, not to make something look different.
- *
- * `forwardRef` for the same reason as Input: React Hook Form's `register()` attaches a ref.
- */
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { label, options, error, placeholder, id, className, ...rest },
   ref,
@@ -49,8 +39,6 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         {...rest}
       >
         {placeholder && (
-          // Empty value so a required field genuinely fails validation while this is selected.
-          // A placeholder with a real value would silently submit as a legitimate choice.
           <option value="">{placeholder}</option>
         )}
         {options.map((option) => (

@@ -8,16 +8,6 @@ import styles from './page.module.scss';
 
 export const metadata = { title: 'My events · TicketRush' };
 
-/**
- * A SERVER component, so the wrong role never receives the markup.
- *
- * This duplicates the middleware gate deliberately: middleware matches by pattern and is easy to
- * mis-scope, so a page that must not render for the wrong role says so itself. One line, and it is the
- * last defence before HTML exists.
- *
- * Neither check is the security boundary — `GET /api/events/mine` is guarded by RolesGuard and returns
- * 403 regardless of what rendered.
- */
 export default async function MyEventsPage() {
   const session = await auth();
 

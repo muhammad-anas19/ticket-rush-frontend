@@ -21,16 +21,6 @@ const STATUS_TONE: Record<OrderStatus, BadgeTone> = {
   refunded: 'neutral',
 };
 
-/**
- * `/me/tickets`'s data source, from `GET /api/orders/mine`.
- *
- * Deliberately does NOT show a ticket code column. `Ticket` rows are created by M6's RabbitMQ
- * consumer — paused (`TR-DEC-030`) — so a `paid` order exists here the instant the webhook
- * commits, but no ticket row exists yet, possibly for a while. `frontend/CLAUDE.md`'s own trap:
- * "a ticket may not exist yet a second after payment — show a pending state, not an empty
- * table." This table shows exactly what's true right now: the ORDER's status, honestly, and a
- * `paid` row's own note about what's still pending on top of that.
- */
 export function MyOrders() {
   const [page, setPage] = useState(1);
   const { data, isPending, isError, error, isFetching } = useMyOrders({ page, limit: PAGE_SIZE });
@@ -96,8 +86,6 @@ export function MyOrders() {
                         <div className={styles.sub}>{order.event.venue}</div>
                       </>
                     ) : (
-                      // The event was joined via a LEFT JOIN — absent only if the event row
-                      // itself is gone, which nothing in this app currently does.
                       <span className={styles.muted}>Event unavailable</span>
                     )}
                   </td>

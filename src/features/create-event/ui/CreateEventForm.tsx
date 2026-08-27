@@ -25,19 +25,6 @@ export function CreateEventForm() {
   });
 
   const onSubmit = async (values: CreateEventValues) => {
-    /**
-     * The conversion boundary. Two transformations happen here and nowhere else:
-     *
-     *   19.99            → 1999                          (major units → integer cents)
-     *   "2026-09-01T20:00" → "2026-09-01T15:00:00.000Z"   (local wall time → UTC instant)
-     *
-     * Both exist because the storage representation and the human representation are genuinely
-     * different, and the place to reconcile them is the edge — once, explicitly, where you can see it.
-     *
-     * `toISOString()` always produces a Z-suffixed UTC string, so the server never has to guess a
-     * timezone. Sending the raw `datetime-local` value would make Postgres interpret it in the SERVER's
-     * zone, which is the classic "works locally, wrong in production" bug.
-     */
     const event = await mutateAsync({
       title: values.title,
       description: values.description || undefined,
@@ -47,8 +34,6 @@ export function CreateEventForm() {
       totalTickets: values.totalTickets,
     });
 
-    // mutateAsync throws on failure, so reaching here means it worked. The hook already toasted success
-    // and invalidated the caches; this only navigates.
     router.push(`/events/${event.id}`);
   };
 
@@ -114,8 +99,6 @@ export function CreateEventForm() {
         {isPending ? "Creating…" : "Create event"}
       </Button>
 
-      {/* No error banner and no try/catch. The mutation hook toasts the backend's exact message —
-          errors are relayed, never rewritten. */}
     </form>
   );
 }

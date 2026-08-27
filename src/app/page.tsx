@@ -11,11 +11,6 @@ export default function HomePage() {
         <p className={styles.subtitle}>Live event ticketing</p>
       </header>
 
-      {/*
-        Suspense is required, not decorative: EventList calls useSearchParams() to read page and search
-        from the URL, and in the App Router that needs a boundary or `next build` FAILS. A build-time
-        error, so easy to hit for the first time at deploy.
-      */}
       <Suspense fallback={null}>
         <EventList />
       </Suspense>

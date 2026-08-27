@@ -5,7 +5,6 @@ export interface Hold {
   eventId: string;
   quantity: number;
   status: HoldStatus;
-  /** ISO 8601 UTC. The countdown deadline. Always trust THIS over any client-side clock. */
   expiresAt: string;
   eventTicketsRemaining: number;
 }

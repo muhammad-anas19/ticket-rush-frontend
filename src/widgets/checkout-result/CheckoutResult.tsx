@@ -11,27 +11,8 @@ import { formatCents } from '@/shared/lib/money';
 import { Badge, Button, Skeleton } from '@/shared/ui';
 import styles from './CheckoutResult.module.scss';
 
-/**
- * `frontend/CLAUDE.md`'s standing rule, taken literally: "the Stripe success page cannot be
- * trusted... poll or subscribe for the order's real status rather than asserting success." This
- * component never assumes payment succeeded because the browser landed here — Stripe's
- * `success_url` proves only that a browser was POINTED somewhere, not that money moved. Only
- * `order.status`, set exclusively by the webhook, decides what's shown.
- *
- * `useOrder()` polls every 2s while `status === 'pending'` and stops the instant it isn't —
- * `pending` is the ONLY non-terminal state; `paid`/`failed`/`refunded` never change again once
- * the webhook has acted, so there is nothing left to ask about after that.
- *
- * Reads `?orderId=` itself (`OrdersService.createCheckoutSession()`'s `success_url` query param
- * — there ONLY so this page knows which order to poll, never trusted as proof of anything by
- * itself) rather than taking it as a prop, so the page composing this stays a plain server
- * component — the same split `widgets/event-list/EventList.tsx` already uses.
- */
 export function CheckoutResult() {
   const orderId = useSearchParams()?.get('orderId');
-  // `enabled: Boolean(id)` inside `useOrder` itself already no-ops the query for a missing id —
-  // this hook call must still happen unconditionally, before any early return, same as every
-  // other hook here.
   const { data: order, isPending, isError, error } = useOrder(orderId ?? '');
 
   useEffect(() => {
@@ -70,7 +51,6 @@ export function CheckoutResult() {
       <main className={styles.page}>
         <div className={styles.card}>
           <h1>Could not check your order</h1>
-          {/* The backend's exact message — never rewritten. */}
           <p className={styles.errorText}>{getErrorMessage(error)}</p>
           <div className={styles.actions}>
             <Link href="/">
@@ -151,7 +131,6 @@ export function CheckoutResult() {
     );
   }
 
-  // 'failed'
   return (
     <main className={styles.page}>
       <div className={styles.card}>

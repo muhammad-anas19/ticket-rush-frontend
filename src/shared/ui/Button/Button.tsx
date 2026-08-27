@@ -36,14 +36,9 @@ export function Button({
 
   return (
     <button
-      // Defaulting to "button", not "submit". A <button> inside a <form> submits it by
-      // default, which is a genuinely surprising source of accidental submissions from
-      // buttons that were only meant to open a modal.
       type={type}
       className={classes}
       disabled={disabled || isLoading}
-      // Tells assistive technology the control is busy. Visually hiding nothing and
-      // announcing nothing would leave a screen-reader user with no signal at all.
       aria-busy={isLoading || undefined}
       {...rest}
     >
